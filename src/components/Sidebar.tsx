@@ -81,7 +81,7 @@ export function Sidebar({
         {/* Custom tabs section */}
         {tabs.length > 0 && (
           <>
-            <div className="my-2 border-t border-border/40" />
+            <div className="my-2 border-t border-accent/25" />
             {tabs.map((tab) => (
               <NavButton
                 key={tab.id}
@@ -107,7 +107,7 @@ export function Sidebar({
 
       {/* Bottom actions */}
       <div className="px-2 pb-3 space-y-0.5">
-        <div className="mb-1 border-t border-border/40" />
+        <div className="mb-1 border-t border-accent/25" />
 
         <SidebarAction
           icon={Plus}
