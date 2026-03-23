@@ -1,6 +1,5 @@
 <div align="center">
-<img width="120" height="120" alt="image" src="https://github.com/user-attachments/assets/b1a7ac98-f791-4066-9b0d-7003b5fc5772" />
-
+<img width="100" height="100" alt="image" src="https://github.com/user-attachments/assets/b1a7ac98-f791-4066-9b0d-7003b5fc5772" />
 # Reach
 
 **One launcher for every connection.**
