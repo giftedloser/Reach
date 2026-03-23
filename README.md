@@ -1,4 +1,5 @@
 <div align="center">
+<img width="512" height="512" alt="image" src="https://github.com/user-attachments/assets/b1a7ac98-f791-4066-9b0d-7003b5fc5772" />
 
 # Reach
 
