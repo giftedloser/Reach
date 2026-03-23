@@ -1,67 +1,135 @@
+<div align="center">
+
 # Reach
 
-A desktop launcher for managing RDP, SSH, local applications, and RD Web feeds — all from one place.
+**One launcher for every connection.**
 
-Built with [Tauri](https://tauri.app) + React + TypeScript. **Windows only** (RDP, WinHTTP, and Windows Credential Manager are Windows-specific).
+RDP &nbsp;|&nbsp; SSH &nbsp;|&nbsp; Local Apps &nbsp;|&nbsp; RD Web Feeds
+
+[![Latest Release](https://img.shields.io/github/v/release/giftedloser/Reach?style=for-the-badge&color=E8734A&label=Download)](https://github.com/giftedloser/Reach/releases/latest)
+&nbsp;&nbsp;
+[![License](https://img.shields.io/github/license/giftedloser/Reach?style=for-the-badge&color=353535)](LICENSE)
+&nbsp;&nbsp;
+[![Built with Tauri](https://img.shields.io/badge/Built_with-Tauri_2-FFC131?style=for-the-badge&logo=tauri&logoColor=white)](https://tauri.app)
+
+<br />
+
+<img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" alt="Windows" />
+
+---
+
+</div>
+
+## What is Reach?
+
+Reach is a desktop launcher that puts all your remote connections and local apps in one clean interface. No more juggling RDP files, PuTTY shortcuts, and app launchers separately — organize everything into custom tabs, assign saved credentials, and launch with a double-click.
+
+Built with [Tauri 2](https://tauri.app) + React 19 + TypeScript. **Windows only** — uses native Windows Credential Manager, RDP, and WinHTTP under the hood.
 
 ## Features
 
-- **Unified launcher** — RDP connections, SSH sessions, local apps, and RD Web resources in one interface
-- **Custom tabs** — Organize resources into named groups
-- **Per-resource customization** — Custom icons and accent colors for every resource
-- **Multiple view modes** — Grid and list views with compact / standard / comfortable density
-- **Three themes** — Light, Dark, and Catppuccin
-- **Search** — Quick search across all resources (Ctrl+K)
-- **Per-connection credentials** — Assign saved credentials to individual RDP, SSH, and app cards for auto-login
-- **Credential management** — Passwords stored in Windows Credential Manager; update passwords in one click when they rotate
-- **Data backup** — Export and import all data as JSON
-- **RD Web integration** — Sync resources from Remote Desktop Web Access feeds (experimental)
-- **Keyboard shortcuts** — Ctrl+0–4 for tabs, Ctrl+, for settings
+<table>
+<tr>
+<td width="50%">
 
-## Download
+### Launch Anything
+- **RDP** connections with auto-login
+- **SSH** sessions via PuTTY
+- **Local apps** and scripts
+- **RD Web feeds** — sync RemoteApps from your org's portal
 
-[![Latest Release](https://img.shields.io/github/v/release/giftedloser/Reach?style=flat-square&label=latest&color=blue)](https://github.com/giftedloser/Reach/releases/latest)
+</td>
+<td width="50%">
 
-**[Download the latest release](https://github.com/giftedloser/Reach/releases/latest)** — grab the `.msi` or `.exe` installer from the Assets section and run it.
+### Stay Organized
+- **Custom tabs** to group resources your way
+- **Grid & list views** with 3 density modes
+- **Quick search** across everything (`Ctrl+K`)
+- **Per-resource icons & colors**
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### Credential Management
+- **Per-connection credentials** — assign a saved credential to any card
+- **Windows Credential Manager** — passwords never stored in the app database
+- **One-click password rotation** — update without reassigning
+- **Auto-login** — TERMSRV injection for RDP, `-pw` flag for SSH
+
+</td>
+<td width="50%">
+
+### Look & Feel
+- **3 themes** — Editorial Light, Dark Gold, Riddim Synth
+- **Accent color system** — each theme has a distinct accent personality
+- **Keyboard shortcuts** — `Ctrl+0-4` for tabs, `Ctrl+,` for settings
+- **Export / Import** — back up your entire config as JSON
+
+</td>
+</tr>
+</table>
+
+## Quick Start
+
+Grab the latest `.msi` or `.exe` from **[Releases](https://github.com/giftedloser/Reach/releases/latest)**, install, and launch.
 
 ## Development
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) 18+
-- [Rust](https://www.rust-lang.org/tools/install)
-- [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) (Windows: WebView2, C++ build tools)
-
-### Setup
+> **Prerequisites:** [Node.js 18+](https://nodejs.org/), [Rust](https://www.rust-lang.org/tools/install), [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/)
 
 ```bash
 git clone https://github.com/giftedloser/Reach.git
-cd reach
+cd Reach
 npm install
 npm run tauri dev
 ```
 
-### Build
+**Build an installer:**
 
 ```bash
 npm run tauri build
+# outputs to src-tauri/target/release/bundle/
 ```
-
-Outputs an installer to `src-tauri/target/release/bundle/`.
 
 ## Tech Stack
 
-| Layer | Technology |
+| | Technology |
 |---|---|
-| Frontend | React 19, TypeScript, Tailwind CSS v4, Radix UI |
-| Backend | Tauri 2, Rust, SQLite (rusqlite) |
-| Platform | Windows Credential Manager, WinHTTP |
-| Icons | Lucide React |
+| **Frontend** | React 19, TypeScript, Tailwind CSS v4, Radix UI, Lucide Icons |
+| **Backend** | Tauri 2, Rust, SQLite (rusqlite) |
+| **Security** | Windows Credential Manager, DPAPI encryption |
+| **Platform** | WinHTTP (NTLM/Kerberos), mstsc, PuTTY |
+
+## Project Structure
+
+```
+src/                   React frontend
+  components/          UI components (cards, dialogs, views)
+  contexts/            React context providers
+  lib/                 Utilities, theme config, icon registry
+  types/               TypeScript interfaces
+
+src-tauri/src/         Rust backend
+  lib.rs               Tauri command registration
+  db.rs                SQLite schema & migrations
+  credentials.rs       Credential CRUD + OS secure storage
+  connections.rs       RDP connections & launch
+  ssh.rs               SSH connections & launch
+  apps.rs              Local app launcher
+  rd.rs                RD Web feed sync
+  backup.rs            Export / import
+```
+
+## Security
+
+Passwords are **never stored in the app database**. Reach uses Windows Credential Manager for all credential storage, with DPAPI encryption for RD Web feed credentials. See [SECURITY.md](docs/SECURITY.md) for the full architecture.
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.
 
 ## License
 
-[MIT](LICENSE) © LoserLabs
+[MIT](LICENSE) &copy; LoserLabs
