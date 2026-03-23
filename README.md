@@ -18,9 +18,11 @@ Built with [Tauri](https://tauri.app) + React + TypeScript. **Windows only** (RD
 - **RD Web integration** — Sync resources from Remote Desktop Web Access feeds (experimental)
 - **Keyboard shortcuts** — Ctrl+0–4 for tabs, Ctrl+, for settings
 
-## Installation
+## Download
 
-Download the latest installer from the [Releases](https://github.com/giftedloser/Reach/releases) page and run the `.msi` or `.exe` setup.
+[![Latest Release](https://img.shields.io/github/v/release/giftedloser/Reach?style=flat-square&label=latest&color=blue)](https://github.com/giftedloser/Reach/releases/latest)
+
+**[Download the latest release](https://github.com/giftedloser/Reach/releases/latest)** — grab the `.msi` or `.exe` installer from the Assets section and run it.
 
 ## Development
 
