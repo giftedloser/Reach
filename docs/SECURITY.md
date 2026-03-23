@@ -27,15 +27,7 @@ User credentials for RDP, SSH, and App connections are stored securely using the
 - **Nullable credential_id**: Connections without a credential assigned prompt normally (backward compatible).
 - **Password rotation**: Users can update just the password on an existing credential without changing assignments.
 
-## 2. RD Web Feed Credentials (DPAPI)
-
-Feed credentials (for RD Web Access portals) use DPAPI for encryption at rest.
-
-- **Mechanism**: `CryptProtectData` / `CryptUnprotectData` with CurrentUser scope.
-- **Storage**: Encrypted blob stored as Base64 in SQLite.
-- **API Redaction**: `get_feeds` returns `password: null` to the frontend.
-
-## 3. Leak Prevention
+## 2. Leak Prevention
 
 - **No passwords in SQLite**: Stored credentials use OS-level secure storage only.
 - **No passwords in .rdp files**: Credentials are injected via `cmdkey` before launch, not written to disk.

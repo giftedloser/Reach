@@ -14,37 +14,22 @@ Per-connection credential assignment with OS-level secure storage.
 - **App Launch (.rdp)**: Parses `full address:s:` from .rdp files, sets TERMSRV credential.
 - **Cleanup**: Deleting a credential clears `credential_id` from all referencing connections/apps.
 
-### 2. RD Web Integration (`src-tauri/src/rd.rs`)
+### 2. Connection Types
 
-The application integrates with RD Web Access (IIS) to discover and launch RemoteApps and Desktops. It treats the RD Web feed as a REST-like API endpoint, consuming the XML feed directly.
+| Type | Backend | Launch Method |
+|---|---|---|
+| **RDP** | `connections.rs` | `mstsc` with cmdkey auto-login |
+| **SSH** | `ssh.rs` | PuTTY with `-l` / `-pw` flags |
+| **Apps / RemoteApps** | `apps.rs` | Direct exec, shell items, or `.rdp` file parsing |
 
-### 3. WinHTTP Network Layer
+### 3. Database (`src-tauri/src/db.rs`)
 
-- **Library**: `windows::Win32::Networking::WinHttp` (unsafe Rust bindings).
-- **Purpose**: Provides a robust, OS-native HTTP client that correctly handles:
-  - NTLM/Kerberos Authentication (IWA)
-  - Proxy detection
-  - Cookie management
-  - SSL/TLS
+SQLite via `rusqlite`, stored as `database.sqlite` in the app data directory. Schema managed through versioned migrations.
 
-### 4. Folder Parsing Logic
+### 4. Tab System (`src-tauri/src/tabs.rs`)
 
-The XML parser uses a stack-based state machine to correctly interpret nested `<Folder>` tags within the `TSWP` or `Atom` feed.
+Custom tabs for organizing resources. Each tab holds a filtered view of connections and apps. Reorderable with drag-and-drop.
 
-- **Hierarchy**: Resources are grouped by their folder path (e.g., "Office/Word").
-- **Display**: The frontend (`RDView.tsx`) sorts folders alphabetically and displays them before root-level items.
+### 5. Backup System (`src-tauri/src/backup.rs`)
 
-### 5. Database Schema
-
-Stored in `database.sqlite` in the generic `rd_feeds` table:
-
-```sql
-CREATE TABLE rd_feeds (
-    id TEXT PRIMARY KEY,
-    url TEXT NOT NULL,
-    username TEXT,
-    password TEXT, -- Encrypted Blob (Base64)
-    resources_json TEXT, -- Cached feed content
-    last_sync_at TEXT
-);
-```
+Full export/import of the database as JSON. Credentials are excluded from exports (OS-level storage only).

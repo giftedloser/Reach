@@ -5,7 +5,7 @@
 
 **One launcher for every connection.**
 
-RDP &nbsp;|&nbsp; SSH &nbsp;|&nbsp; Local Apps &nbsp;|&nbsp; RD Web Feeds
+RDP &nbsp;|&nbsp; SSH &nbsp;|&nbsp; Local Apps &nbsp;|&nbsp; RemoteApps
 
 [![Latest Release](https://img.shields.io/github/v/release/giftedloser/Reach?style=for-the-badge&color=E8734A&label=Download)](https://github.com/giftedloser/Reach/releases/latest)
 &nbsp;&nbsp;
@@ -25,7 +25,7 @@ RDP &nbsp;|&nbsp; SSH &nbsp;|&nbsp; Local Apps &nbsp;|&nbsp; RD Web Feeds
 
 Reach is a desktop launcher that puts all your remote connections and local apps in one clean interface. No more juggling RDP files, PuTTY shortcuts, and app launchers separately — organize everything into custom tabs, assign saved credentials, and launch with a double-click.
 
-Built with [Tauri 2](https://tauri.app) + React 19 + TypeScript. **Windows only** — uses native Windows Credential Manager, RDP, and WinHTTP under the hood.
+Built with [Tauri 2](https://tauri.app) + React 19 + TypeScript. **Windows only** — uses native Windows Credential Manager and RDP under the hood.
 
 ## Features
 
@@ -37,7 +37,7 @@ Built with [Tauri 2](https://tauri.app) + React 19 + TypeScript. **Windows only*
 - **RDP** connections with auto-login
 - **SSH** sessions via PuTTY
 - **Local apps** and scripts
-- **RD Web feeds** — sync RemoteApps from your org's portal
+- **RemoteApps** — launch `.rdp` files with auto-login
 
 </td>
 <td width="50%">
@@ -100,8 +100,8 @@ npm run tauri build
 |---|---|
 | **Frontend** | React 19, TypeScript, Tailwind CSS v4, Radix UI, Lucide Icons |
 | **Backend** | Tauri 2, Rust, SQLite (rusqlite) |
-| **Security** | Windows Credential Manager, DPAPI encryption |
-| **Platform** | WinHTTP (NTLM/Kerberos), mstsc, PuTTY |
+| **Security** | Windows Credential Manager (OS-level secure storage) |
+| **Platform** | mstsc, PuTTY |
 
 ## Project Structure
 
@@ -118,14 +118,13 @@ src-tauri/src/         Rust backend
   credentials.rs       Credential CRUD + OS secure storage
   connections.rs       RDP connections & launch
   ssh.rs               SSH connections & launch
-  apps.rs              Local app launcher
-  rd.rs                RD Web feed sync
+  apps.rs              Local app & RemoteApp launcher
   backup.rs            Export / import
 ```
 
 ## Security
 
-Passwords are **never stored in the app database**. Reach uses Windows Credential Manager for all credential storage, with DPAPI encryption for RD Web feed credentials. See [SECURITY.md](docs/SECURITY.md) for the full architecture.
+Passwords are **never stored in the app database**. Reach uses Windows Credential Manager for all credential storage. See [SECURITY.md](docs/SECURITY.md) for the full architecture.
 
 ## Contributing
 
