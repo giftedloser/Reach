@@ -133,9 +133,9 @@ export function UnifiedAddDialog({ open, onOpenChange, onSuccess }: UnifiedAddDi
       onSuccess();
       onOpenChange(false);
       resetForm();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save:", error);
-      const errStr = error.toString();
+      const errStr = String(error);
 
       if (type === "feed" && (errStr.includes("AuthRequired") || errStr.includes("401"))) {
         if (password) {

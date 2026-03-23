@@ -18,7 +18,7 @@ Per-connection credential assignment with OS-level secure storage.
 
 The application integrates with RD Web Access (IIS) to discover and launch RemoteApps and Desktops. It treats the RD Web feed as a REST-like API endpoint, consuming the XML feed directly.
 
-### 2. WinHTTP Network Layer
+### 3. WinHTTP Network Layer
 
 - **Library**: `windows::Win32::Networking::WinHttp` (unsafe Rust bindings).
 - **Purpose**: Provides a robust, OS-native HTTP client that correctly handles:
@@ -27,14 +27,14 @@ The application integrates with RD Web Access (IIS) to discover and launch Remot
   - Cookie management
   - SSL/TLS
 
-### 3. Folder Parsing Logic
+### 4. Folder Parsing Logic
 
 The XML parser uses a stack-based state machine to correctly interpret nested `<Folder>` tags within the `TSWP` or `Atom` feed.
 
 - **Hierarchy**: Resources are grouped by their folder path (e.g., "Office/Word").
 - **Display**: The frontend (`RDView.tsx`) sorts folders alphabetically and displays them before root-level items.
 
-### 4. Database Schema
+### 5. Database Schema
 
 Stored in `database.sqlite` in the generic `rd_feeds` table:
 
