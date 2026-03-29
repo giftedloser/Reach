@@ -23,7 +23,10 @@ RDP &nbsp;|&nbsp; SSH &nbsp;|&nbsp; Local Apps &nbsp;|&nbsp; RemoteApps
 </div>
 
 ## What is Reach?
+
 <img width="893" height="511" alt="image" src="https://github.com/user-attachments/assets/85f499d9-f4db-484f-9865-d3a10683187e" />
+
+
 Reach is a desktop launcher that puts all your remote connections and local apps in one clean interface. No more juggling RDP files, PuTTY shortcuts, and app launchers separately — organize everything into custom tabs, assign saved credentials, and launch with a double-click.
 
 Built with [Tauri 2](https://tauri.app) + React 19 + TypeScript. **Windows only** — uses native Windows Credential Manager and RDP under the hood.
