@@ -1,5 +1,6 @@
 <div align="center">
-<img width="500" height="500" alt="newicon" src="https://github.com/user-attachments/assets/e2c2f916-5315-4b99-b944-3c5cb59c2816" />
+
+<img width="200" height="200" alt="newicon" src="https://github.com/user-attachments/assets/e2c2f916-5315-4b99-b944-3c5cb59c2816" />
   
 # Reach
 
