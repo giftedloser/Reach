@@ -21,10 +21,8 @@ RDP &nbsp;|&nbsp; SSH &nbsp;|&nbsp; Local Apps &nbsp;|&nbsp; RemoteApps
 
 ---
 
-</div>
-
 <img width="859" height="591" alt="image" src="https://github.com/user-attachments/assets/8fe92936-f202-4dce-8e06-48213ee089a3" />
-
+</div>
 ## What is Reach?
 
 Reach is a desktop launcher that puts all your remote connections and local apps in one clean interface. No more juggling RDP files, PuTTY shortcuts, and app launchers separately — organize everything into custom tabs, assign saved credentials, and launch with a double-click.
