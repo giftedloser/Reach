@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [1.2.0] — 2026-03-31
 
 ### Added
 - Designated RD Gateway support through Settings, with per-RDP opt-in for routed launches
