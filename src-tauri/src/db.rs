@@ -2,7 +2,7 @@ use rusqlite::{Connection, Result};
 use std::fs;
 use tauri::{AppHandle, Manager};
 
-const INIT_SQL: &str = "
+pub(crate) const INIT_SQL: &str = "
 CREATE TABLE IF NOT EXISTS connections (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -72,20 +72,7 @@ CREATE TABLE IF NOT EXISTS stored_credentials (
 );
 ";
 
-pub fn init_db(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let app_dir = app
-        .path()
-        .app_data_dir()
-        .expect("failed to get app data dir");
-
-    // Ensure directory exists
-    if !app_dir.exists() {
-        fs::create_dir_all(&app_dir)?;
-    }
-
-    let db_path = app_dir.join("database.sqlite");
-    let conn = Connection::open(db_path)?;
-
+pub(crate) fn init_conn(conn: &Connection) -> Result<()> {
     conn.execute_batch(INIT_SQL)?;
 
     // Migration: Add icon and color columns to resource tables
@@ -100,8 +87,29 @@ pub fn init_db(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
     // Migration: Add credential_id columns
     let _ = conn.execute("ALTER TABLE connections ADD COLUMN credential_id TEXT", []);
-    let _ = conn.execute("ALTER TABLE ssh_connections ADD COLUMN credential_id TEXT", []);
+    let _ = conn.execute(
+        "ALTER TABLE ssh_connections ADD COLUMN credential_id TEXT",
+        [],
+    );
     let _ = conn.execute("ALTER TABLE apps ADD COLUMN credential_id TEXT", []);
+
+    Ok(())
+}
+
+pub fn init_db(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    let app_dir = app
+        .path()
+        .app_data_dir()
+        .expect("failed to get app data dir");
+
+    // Ensure directory exists
+    if !app_dir.exists() {
+        fs::create_dir_all(&app_dir)?;
+    }
+
+    let db_path = app_dir.join("database.sqlite");
+    let conn = Connection::open(db_path)?;
+    init_conn(&conn)?;
 
     Ok(())
 }

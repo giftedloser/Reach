@@ -135,3 +135,44 @@ export interface StoredCredential {
     username: string;
     created_at: string | null;
 }
+
+export interface DesignatedGatewaySetting {
+  hostname: string;
+}
+
+export interface ConnectionGatewayConfig {
+  hostname?: string;
+  mode?: "designated";
+  use_designated_gateway?: boolean;
+}
+
+function normalizedGatewayHostname(value: string): string | null {
+  const hostname = value.trim();
+  const isPlausible = hostname.length > 0
+    && !/\s/.test(hostname)
+    && /^[A-Za-z0-9._:-]+$/.test(hostname);
+
+  return isPlausible ? hostname : null;
+}
+
+export function connectionUsesGateway(connection: Pick<Connection, "gateway_json">): boolean {
+  const gatewayJson = connection.gateway_json?.trim();
+  if (!gatewayJson) {
+    return false;
+  }
+
+  try {
+    const parsed = JSON.parse(gatewayJson) as ConnectionGatewayConfig | string;
+    if (typeof parsed === "string") {
+      return normalizedGatewayHostname(parsed) !== null;
+    }
+
+    if (parsed.mode === "designated" || parsed.use_designated_gateway === true) {
+      return true;
+    }
+
+    return parsed.hostname !== undefined && normalizedGatewayHostname(parsed.hostname) !== null;
+  } catch {
+    return normalizedGatewayHostname(gatewayJson) !== null;
+  }
+}

@@ -15,7 +15,7 @@ pub struct Tab {
 pub struct TabAssignment {
     pub tab_id: String,
     pub resource_id: String,
-    pub resource_type: String, // "app", "rdp", "ssh", "rd_feed"
+    pub resource_type: String, // "app", "rdp", "ssh"
 }
 
 #[tauri::command]
@@ -120,16 +120,29 @@ pub fn assign_to_tab(
 }
 
 #[tauri::command]
-pub fn remove_from_tab(app: AppHandle, tab_id: String, resource_id: String) -> Result<(), String> {
+pub fn remove_from_tab(
+    app: AppHandle,
+    tab_id: String,
+    resource_id: String,
+    resource_type: Option<String>,
+) -> Result<(), String> {
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let db_path = app_dir.join("database.sqlite");
     let conn = DbConnection::open(db_path).map_err(|e| e.to_string())?;
 
-    conn.execute(
-        "DELETE FROM tab_assignments WHERE tab_id = ?1 AND resource_id = ?2",
-        params![tab_id, resource_id],
-    )
-    .map_err(|e| e.to_string())?;
+    if let Some(resource_type) = resource_type {
+        conn.execute(
+            "DELETE FROM tab_assignments WHERE tab_id = ?1 AND resource_id = ?2 AND resource_type = ?3",
+            params![tab_id, resource_id, resource_type],
+        )
+        .map_err(|e| e.to_string())?;
+    } else {
+        conn.execute(
+            "DELETE FROM tab_assignments WHERE tab_id = ?1 AND resource_id = ?2",
+            params![tab_id, resource_id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
 
     Ok(())
 }

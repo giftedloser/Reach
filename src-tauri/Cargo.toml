@@ -1,7 +1,7 @@
 [package]
 name = "reach"
 version = "1.1.0"
-description = "A desktop launcher for RDP, SSH, local apps, and RD Web feeds"
+description = "A desktop launcher for RDP, SSH, and local apps"
 authors = ["LoserLabs"]
 license = "MIT"
 repository = "https://github.com/giftedloser/Reach"
@@ -28,3 +28,4 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 tauri-plugin-dialog = "2.6.0"
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_UI_Shell"] }

@@ -61,7 +61,7 @@ export function AddToTabDialog({ open, onOpenChange, resourceId, resourceType }:
     const toggleAssignment = async (tabId: string, current: boolean) => {
         try {
             if (current) {
-                await invoke("remove_from_tab", { tabId, resourceId });
+                await invoke("remove_from_tab", { tabId, resourceId, resourceType });
                 assignments.delete(tabId);
             } else {
                 await invoke("assign_to_tab", { tabId, resourceId, resourceType });

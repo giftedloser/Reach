@@ -6,7 +6,7 @@ interface ReachLogoProps {
 export function ReachLogo({ className = "", size = 24 }: ReachLogoProps) {
   return (
     <img
-      src="/reach-logo.svg"
+      src="/reach-logo.png"
       alt=""
       aria-hidden="true"
       width={size}

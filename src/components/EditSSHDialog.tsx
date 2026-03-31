@@ -66,7 +66,7 @@ export function EditSSHDialog({ open, onOpenChange, connection, onSuccess }: Edi
               await invoke("assign_to_tab", { tabId, resourceId: connection.id, resourceType: "ssh" });
               setAssignedTabIds(prev => [...prev, tabId]);
           } else {
-              await invoke("remove_from_tab", { tabId, resourceId: connection.id });
+              await invoke("remove_from_tab", { tabId, resourceId: connection.id, resourceType: "ssh" });
               setAssignedTabIds(prev => prev.filter(id => id !== tabId));
           }
       } catch (err) {

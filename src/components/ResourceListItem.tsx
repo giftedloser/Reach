@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Pencil, Play, ShieldAlert } from "lucide-react";
+import { Pencil, Play, Route, ShieldAlert } from "lucide-react";
 import { useUI } from "@/contexts/UIContext";
 
 interface ResourceListItemProps {
@@ -9,6 +9,7 @@ interface ResourceListItemProps {
   icon: LucideIcon;
   accentColor: string;
   typeBadge: string;
+  gatewayBadge?: boolean;
   onLaunch: () => void;
   onEdit?: (e: React.MouseEvent) => void;
   adminBadge?: boolean;
@@ -20,6 +21,7 @@ export function ResourceListItem({
   icon: Icon,
   accentColor,
   typeBadge,
+  gatewayBadge,
   onLaunch,
   onEdit,
   adminBadge,
@@ -54,6 +56,19 @@ export function ResourceListItem({
             className="absolute -top-1 -right-1 h-3 w-3"
             style={{ color: "var(--theme-warning)" }}
           />
+        )}
+        {gatewayBadge && (
+          <div
+            className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border"
+            style={{
+              backgroundColor: "var(--background)",
+              borderColor: `${accentColor}33`,
+              color: accentColor,
+            }}
+            title="Uses RD Gateway"
+          >
+            <Route className="h-2 w-2" />
+          </div>
         )}
       </div>
 

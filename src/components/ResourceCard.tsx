@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Pencil, Play, ShieldAlert } from "lucide-react";
+import { Pencil, Play, Route, ShieldAlert } from "lucide-react";
 import { useUI } from "@/contexts/UIContext";
 
 interface ResourceCardProps {
@@ -9,6 +9,7 @@ interface ResourceCardProps {
   icon: LucideIcon;
   accentColor: string;
   typeBadge: string;
+  gatewayBadge?: boolean;
   onLaunch: () => void;
   onEdit?: (e: React.MouseEvent) => void;
   adminBadge?: boolean;
@@ -20,6 +21,7 @@ export function ResourceCard({
   icon: Icon,
   accentColor,
   typeBadge,
+  gatewayBadge,
   onLaunch,
   onEdit,
   adminBadge,
@@ -52,7 +54,7 @@ export function ResourceCard({
 
   return (
     <div
-      className={`neo-card group relative cursor-pointer flex flex-col items-center text-center ${cardPad[density]}`}
+      className={`neo-card group relative flex h-full cursor-pointer flex-col items-center text-center ${cardPad[density]}`}
       onDoubleClick={onLaunch}
     >
       {/* Admin badge — top-left pill */}
@@ -108,31 +110,47 @@ export function ResourceCard({
           }}
         >
           <Icon className={`${iconInner[density]} drop-shadow-sm`} />
+          {gatewayBadge && (
+            <div
+              className="absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full border"
+              style={{
+                backgroundColor: "var(--background)",
+                borderColor: `${accentColor}33`,
+                color: accentColor,
+                boxShadow: `0 0 0 1px ${accentColor}18`,
+              }}
+              title="Uses RD Gateway"
+            >
+              <Route className="h-2.5 w-2.5" />
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Name */}
-      <div
-        className={`neo-title font-semibold leading-snug line-clamp-2 ${textSize[density]}`}
-        title={name}
-      >
-        {name}
-      </div>
+      <div className="flex w-full min-h-0 flex-1 flex-col items-center">
+        {/* Name */}
+        <div
+          className={`neo-title font-semibold leading-snug line-clamp-2 ${textSize[density]}`}
+          title={name}
+        >
+          {name}
+        </div>
 
-      {/* Subtitle */}
-      <div
-        className="mt-0.5 text-[10px] text-muted-foreground truncate max-w-full font-mono opacity-50"
-        title={subtitle}
-      >
-        {subtitle}
-      </div>
+        {/* Subtitle */}
+        <div
+          className="mt-0.5 max-w-full truncate text-[10px] font-mono text-muted-foreground opacity-50"
+          title={subtitle}
+        >
+          {subtitle}
+        </div>
 
-      {/* Type badge */}
-      <div
-        className="mt-1.5 text-[9px] font-bold uppercase tracking-widest opacity-40"
-        style={{ color: accentColor }}
-      >
-        {typeBadge}
+        {/* Type badge */}
+        <div
+          className="mt-auto pt-1.5 text-[9px] font-bold uppercase tracking-widest opacity-40"
+          style={{ color: accentColor }}
+        >
+          {typeBadge}
+        </div>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ export interface ResourceItem {
   icon: LucideIcon;
   accentColor: string;
   typeBadge: string;
+  gatewayBadge?: boolean;
   onLaunch: () => void;
   onEdit?: (e: React.MouseEvent) => void;
   adminBadge?: boolean;

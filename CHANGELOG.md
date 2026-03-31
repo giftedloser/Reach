@@ -6,6 +6,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- Designated RD Gateway support through Settings, with per-RDP opt-in for routed launches
+- Backend regression tests covering backup/import, RD Gateway resolution, and Windows argument parsing
+- Subtle card and list indicators for RDP resources that use an RD Gateway
+
+### Changed
+- Backup exports now include SSH connections, custom tabs, tab assignments, and app settings
+- Backup payloads now carry explicit restore semantics with backward-compatible `merge` default and backend `replace` support
+- App launch argument handling now preserves quoted Windows arguments more reliably
+- Resource type tags on tiles now sit in a consistent bottom position
+- Sidebar branding and app icon assets were refreshed to use the new Reach mark
+
+### Fixed
+- Removed stale RD Web feed UI remnants after feed support was dropped
+- Deleting resources now cleans up related tab assignments more reliably
+- Deleting the active custom tab now falls back cleanly instead of leaving the main panel blank
+- Global/custom-tab search now matches subtitles as well as names
+- Gateway parsing now rejects malformed JSON-like values instead of treating them as hostnames
+
 ## [1.1.0] — 2026-03-23
 
 ### Added

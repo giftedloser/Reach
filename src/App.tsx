@@ -15,6 +15,8 @@ import { TabsManagerDialog } from "@/components/TabsManagerDialog";
 import { CustomTabView } from "@/components/CustomTabView";
 import { ThemeName, THEME_ORDER, getNextTheme, normalizeTheme } from "@/lib/theme";
 
+const BUILT_IN_TABS = ["all", "apps", "rdp", "ssh"];
+
 function App() {
   const [activeTab, setActiveTab] = useState("all");
   const [globalFilter, setGlobalFilter] = useState("");
@@ -40,6 +42,17 @@ function App() {
   useEffect(() => {
     fetchTabs();
   }, [fetchTabs]);
+
+  useEffect(() => {
+    if (BUILT_IN_TABS.includes(activeTab)) {
+      return;
+    }
+
+    const tabStillExists = tabs.some((tab) => tab.id === activeTab);
+    if (!tabStillExists) {
+      setActiveTab("all");
+    }
+  }, [activeTab, tabs]);
 
   useEffect(() => {
     setGlobalFilter("");

@@ -17,6 +17,7 @@ User credentials for RDP, SSH, and App connections are stored securely using the
 3.  **Assignment**: User selects a credential from the picker dropdown on any RDP/SSH/App card.
 4.  **Resolution**: At launch time, `resolve_credential()` fetches username from DB and password from OS store via `CredReadW`.
 5.  **Usage (RDP)**: Sets `TERMSRV/{host}` in Windows Credential Manager, then launches `mstsc`. Auto-authenticates without prompt.
+    If the connection uses an RD Gateway, the gateway hostname is written into the generated `.rdp` payload, but passwords are still resolved through Windows Credential Manager rather than stored in the file.
 6.  **Usage (SSH)**: Passes `-l {user} -pw {password}` to PuTTY.
 7.  **Usage (App/.rdp)**: Parses `full address` from .rdp file, sets TERMSRV credential, then launches.
 8.  **Deletion**: Removes from both OS store and SQLite. Clears `credential_id` from all referencing resources.
@@ -31,5 +32,6 @@ User credentials for RDP, SSH, and App connections are stored securely using the
 
 - **No passwords in SQLite**: Stored credentials use OS-level secure storage only.
 - **No passwords in .rdp files**: Credentials are injected via `cmdkey` before launch, not written to disk.
+- **No passwords in backups**: JSON exports preserve resource metadata, settings, and credential assignments, but never export the underlying secrets from Windows Credential Manager.
 - **Logging**: No sensitive data is logged.
 - **Frontend isolation**: Passwords are never sent to the frontend after initial save.

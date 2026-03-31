@@ -115,6 +115,80 @@ pub struct UpdateConnectionPayload {
     pub credential_id: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct GatewayConfig {
+    hostname: Option<String>,
+    mode: Option<String>,
+    use_designated_gateway: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct DesignatedGatewaySetting {
+    hostname: String,
+}
+
+fn normalized_hostname(value: &str) -> Option<String> {
+    let hostname = value.trim().to_string();
+    let is_plausible = !hostname.is_empty()
+        && !hostname.chars().any(char::is_whitespace)
+        && hostname
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_' | ':'));
+
+    is_plausible.then_some(hostname)
+}
+
+fn get_designated_gateway_hostname(conn: &DbConnection) -> Result<Option<String>, String> {
+    let mut stmt = conn
+        .prepare("SELECT value_json FROM settings WHERE key = 'rd_gateway'")
+        .map_err(|e| e.to_string())?;
+    let mut rows = stmt.query([]).map_err(|e| e.to_string())?;
+
+    let Some(row) = rows.next().map_err(|e| e.to_string())? else {
+        return Ok(None);
+    };
+
+    let raw: String = row.get(0).unwrap_or_default();
+    if raw.trim().is_empty() {
+        return Ok(None);
+    }
+
+    if let Ok(parsed) = serde_json::from_str::<DesignatedGatewaySetting>(&raw) {
+        return Ok(normalized_hostname(&parsed.hostname));
+    }
+
+    if let Ok(parsed) = serde_json::from_str::<String>(&raw) {
+        return Ok(normalized_hostname(&parsed));
+    }
+
+    Ok(normalized_hostname(&raw))
+}
+
+fn resolve_gateway_hostname(
+    conn: &DbConnection,
+    gateway_json: Option<&str>,
+) -> Result<Option<String>, String> {
+    let Some(gateway_json) = gateway_json else {
+        return Ok(None);
+    };
+
+    if let Ok(parsed) = serde_json::from_str::<GatewayConfig>(gateway_json) {
+        if parsed.mode.as_deref() == Some("designated")
+            || parsed.use_designated_gateway == Some(true)
+        {
+            return get_designated_gateway_hostname(conn);
+        }
+
+        return Ok(parsed.hostname.as_deref().and_then(normalized_hostname));
+    }
+
+    if let Ok(parsed) = serde_json::from_str::<String>(gateway_json) {
+        return Ok(normalized_hostname(&parsed));
+    }
+
+    Ok(normalized_hostname(gateway_json))
+}
+
 #[tauri::command]
 pub fn update_connection(app: AppHandle, payload: UpdateConnectionPayload) -> Result<(), String> {
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -146,6 +220,11 @@ pub fn delete_connection(app: AppHandle, id: String) -> Result<(), String> {
     let db_path = app_dir.join("database.sqlite");
     let conn = DbConnection::open(db_path).map_err(|e| e.to_string())?;
 
+    conn.execute(
+        "DELETE FROM tab_assignments WHERE resource_id = ?1 AND resource_type = 'rdp'",
+        params![id],
+    )
+    .map_err(|e| e.to_string())?;
     conn.execute("DELETE FROM connections WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
     Ok(())
@@ -228,14 +307,10 @@ pub fn launch_rdp(app: AppHandle, id: String) -> Result<(), String> {
     }
 
     // Gateway logic
-    if let Some(gw_str) = gateway_json {
-        if let Ok(gw) = serde_json::from_str::<serde_json::Value>(&gw_str) {
-            if let Some(hostname) = gw.get("hostname").and_then(|v| v.as_str()) {
-                rdp_content.push_str(&format!("gatewayhostname:s:{}\n", hostname));
-                rdp_content.push_str("gatewayusagemethod:i:1\n");
-                rdp_content.push_str("gatewayprofileusagemethod:i:1\n");
-            }
-        }
+    if let Some(hostname) = resolve_gateway_hostname(&conn, gateway_json.as_deref())? {
+        rdp_content.push_str(&format!("gatewayhostname:s:{}\n", hostname));
+        rdp_content.push_str("gatewayusagemethod:i:1\n");
+        rdp_content.push_str("gatewayprofileusagemethod:i:1\n");
     }
 
     // Standard defaults — skip credential prompt if we have a resolved credential
@@ -266,4 +341,106 @@ pub fn launch_rdp(app: AppHandle, id: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to launch mstsc: {}", e))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{get_designated_gateway_hostname, resolve_gateway_hostname};
+    use crate::db::init_conn;
+    use rusqlite::{params, Connection};
+
+    fn setup_db() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        init_conn(&conn).unwrap();
+        conn
+    }
+
+    #[test]
+    fn resolves_explicit_gateway_hostname_from_object() {
+        let conn = setup_db();
+
+        let gateway =
+            resolve_gateway_hostname(&conn, Some("{\"hostname\":\"gateway.internal\"}")).unwrap();
+
+        assert_eq!(gateway.as_deref(), Some("gateway.internal"));
+    }
+
+    #[test]
+    fn resolves_explicit_gateway_hostname_from_json_string() {
+        let conn = setup_db();
+
+        let gateway = resolve_gateway_hostname(&conn, Some("\"gateway.internal\"")).unwrap();
+
+        assert_eq!(gateway.as_deref(), Some("gateway.internal"));
+    }
+
+    #[test]
+    fn resolves_explicit_gateway_hostname_from_raw_string() {
+        let conn = setup_db();
+
+        let gateway = resolve_gateway_hostname(&conn, Some("gateway.internal")).unwrap();
+
+        assert_eq!(gateway.as_deref(), Some("gateway.internal"));
+    }
+
+    #[test]
+    fn rejects_invalid_raw_gateway_strings() {
+        let conn = setup_db();
+
+        let gateway = resolve_gateway_hostname(&conn, Some("{bad}")).unwrap();
+
+        assert!(gateway.is_none());
+    }
+
+    #[test]
+    fn resolves_designated_gateway_from_object_setting() {
+        let conn = setup_db();
+        conn.execute(
+            "INSERT INTO settings (key, value_json) VALUES (?1, ?2)",
+            params!["rd_gateway", "{\"hostname\":\"gateway.internal\"}"],
+        )
+        .unwrap();
+
+        let gateway = resolve_gateway_hostname(&conn, Some("{\"mode\":\"designated\"}")).unwrap();
+
+        assert_eq!(gateway.as_deref(), Some("gateway.internal"));
+    }
+
+    #[test]
+    fn resolves_designated_gateway_from_legacy_string_setting() {
+        let conn = setup_db();
+        conn.execute(
+            "INSERT INTO settings (key, value_json) VALUES (?1, ?2)",
+            params!["rd_gateway", "\"gateway.internal\""],
+        )
+        .unwrap();
+
+        let gateway =
+            resolve_gateway_hostname(&conn, Some("{\"use_designated_gateway\":true}")).unwrap();
+
+        assert_eq!(gateway.as_deref(), Some("gateway.internal"));
+    }
+
+    #[test]
+    fn designated_gateway_returns_none_when_setting_missing() {
+        let conn = setup_db();
+
+        let gateway = resolve_gateway_hostname(&conn, Some("{\"mode\":\"designated\"}")).unwrap();
+
+        assert!(gateway.is_none());
+    }
+
+    #[test]
+    fn designated_gateway_helper_accepts_raw_hostname_setting() {
+        let conn = setup_db();
+        conn.execute(
+            "INSERT INTO settings (key, value_json) VALUES (?1, ?2)",
+            params!["rd_gateway", "gateway.internal"],
+        )
+        .unwrap();
+
+        let gateway = get_designated_gateway_hostname(&conn).unwrap();
+
+        assert_eq!(gateway.as_deref(), Some("gateway.internal"));
+    }
 }

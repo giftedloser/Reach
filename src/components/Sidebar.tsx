@@ -60,7 +60,7 @@ export function Sidebar({
       <div className={`flex items-center gap-2.5 px-3 py-4 ${sidebarCollapsed ? "justify-center" : ""}`}>
         <ReachLogo className="h-7 w-7 shrink-0" />
         {!sidebarCollapsed && (
-          <span className="display-font text-base font-bold tracking-tight">
+          <span className="display-font text-[15px] font-semibold tracking-tight text-foreground/80">
             Reach
           </span>
         )}

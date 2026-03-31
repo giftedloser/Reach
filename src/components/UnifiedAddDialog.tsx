@@ -20,7 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Monitor, Terminal, Command, Rss, Folder } from "lucide-react";
+import { Monitor, Terminal, Command, Folder } from "lucide-react";
+import { useEffect } from "react";
+import { ConnectionGatewayConfig, DesignatedGatewaySetting } from "@/types";
 import { CredentialPicker } from "./CredentialPicker";
 
 interface UnifiedAddDialogProps {
@@ -42,9 +44,39 @@ export function UnifiedAddDialog({ open, onOpenChange, onSuccess }: UnifiedAddDi
   const [args, setArgs] = useState("");
   const [workingDir, setWorkingDir] = useState("");
   const [runAsAdmin, setRunAsAdmin] = useState(false);
-  const [url, setUrl] = useState("");
-  const [password, setPassword] = useState("");
   const [credentialId, setCredentialId] = useState<string | null>(null);
+  const [useDesignatedGateway, setUseDesignatedGateway] = useState(false);
+  const [designatedGatewayHost, setDesignatedGatewayHost] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setUseDesignatedGateway(false);
+    invoke<string | null>("get_setting", { key: "rd_gateway" })
+      .then((value) => {
+        if (!value) {
+          setDesignatedGatewayHost("");
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(value) as DesignatedGatewaySetting | string;
+          if (typeof parsed === "string") {
+            setDesignatedGatewayHost(parsed);
+          } else {
+            setDesignatedGatewayHost(parsed.hostname || "");
+          }
+        } catch {
+          setDesignatedGatewayHost(value);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load RD Gateway setting:", error);
+        setDesignatedGatewayHost("");
+      });
+  }, [open]);
 
   const handleBrowse = async () => {
       try {
@@ -69,24 +101,15 @@ export function UnifiedAddDialog({ open, onOpenChange, onSuccess }: UnifiedAddDi
 
     try {
       if (type === "rdp") {
-        if (host.toLowerCase().startsWith("http") || host.toLowerCase().includes("rdweb")) {
-            if (confirm("It looks like you are trying to add a Web Feed (URL detected in Host field). Switch to 'RD Web Feed'?")) {
-                setType("feed");
-                setUrl(host);
-                setHost("");
-                setName("");
-                setIsLoading(false);
-                return;
-            }
-        }
-
         await invoke("save_connection", {
           payload: {
             name,
             host,
             username: username || null,
             tags_json: "[]",
-            gateway_json: null,
+            gateway_json: useDesignatedGateway && designatedGatewayHost.trim()
+              ? JSON.stringify({ mode: "designated" } satisfies ConnectionGatewayConfig)
+              : null,
             rdp_options_json: null,
             icon: null,
             color: null,
@@ -120,14 +143,6 @@ export function UnifiedAddDialog({ open, onOpenChange, onSuccess }: UnifiedAddDi
             credential_id: credentialId,
           }
         });
-      } else if (type === "feed") {
-        await invoke("save_feed", {
-          payload: {
-            url: url.trim(),
-            username: username || null,
-            password: password || null
-          }
-        });
       }
 
       onSuccess();
@@ -135,17 +150,7 @@ export function UnifiedAddDialog({ open, onOpenChange, onSuccess }: UnifiedAddDi
       resetForm();
     } catch (error: unknown) {
       console.error("Failed to save:", error);
-      const errStr = String(error);
-
-      if (type === "feed" && (errStr.includes("AuthRequired") || errStr.includes("401"))) {
-        if (password) {
-             alert(`Authentication Failed: ${errStr}\nPlease check your username and password.`);
-        } else {
-            alert("Authentication Required. Please enter your username and password to proceed.");
-        }
-      } else {
-        alert(error);
-      }
+      alert(String(error));
     } finally {
       setIsLoading(false);
     }
@@ -160,12 +165,10 @@ export function UnifiedAddDialog({ open, onOpenChange, onSuccess }: UnifiedAddDi
     setArgs("");
     setWorkingDir("");
     setRunAsAdmin(false);
-    setUrl("");
-    setPassword("");
     setCredentialId(null);
+    setUseDesignatedGateway(false);
   };
 
-  // Show credential picker for RDP, SSH, and App types (not feed)
   const showCredentialPicker = type === "rdp" || type === "ssh" || type === "app";
 
   return (
@@ -174,7 +177,7 @@ export function UnifiedAddDialog({ open, onOpenChange, onSuccess }: UnifiedAddDi
         <DialogHeader>
           <DialogTitle>Add New Resource</DialogTitle>
           <DialogDescription>
-            Create a new connection, application, or feed.
+            Create a new connection or application.
           </DialogDescription>
         </DialogHeader>
 
@@ -204,17 +207,11 @@ export function UnifiedAddDialog({ open, onOpenChange, onSuccess }: UnifiedAddDi
                     <span>Application / Link / Script</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="feed">
-                  <div className="flex items-center gap-2">
-                    <Rss className="h-4 w-4" style={{ color: "var(--theme-resource-feed)" }} />
-                    <span>RD Web Feed</span>
-                  </div>
-                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {type !== "feed" && type !== "" && (
+          {type !== "" && (
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -253,7 +250,7 @@ export function UnifiedAddDialog({ open, onOpenChange, onSuccess }: UnifiedAddDi
             </div>
           )}
 
-          {(type === "rdp" || type === "ssh" || type === "feed") && (
+          {(type === "rdp" || type === "ssh") && (
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -265,29 +262,25 @@ export function UnifiedAddDialog({ open, onOpenChange, onSuccess }: UnifiedAddDi
             </div>
           )}
 
-          {type === "feed" && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="url">Feed URL</Label>
-                <Input
-                  id="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://server/RDWeb/Feed/webfeed.aspx"
-                  required
+          {type === "rdp" && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-4 py-3">
+                <div className="pr-4">
+                  <Label htmlFor="designated-gateway" className="text-sm cursor-pointer">Use Designated RD Gateway</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {designatedGatewayHost.trim()
+                      ? `Gateway: ${designatedGatewayHost.trim()}`
+                      : "Configure a designated gateway in Settings to enable this option."}
+                  </p>
+                </div>
+                <Switch
+                  id="designated-gateway"
+                  checked={useDesignatedGateway}
+                  onCheckedChange={setUseDesignatedGateway}
+                  disabled={!designatedGatewayHost.trim()}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Optional"
-                />
-              </div>
-            </>
+            </div>
           )}
 
           {type === "app" && (

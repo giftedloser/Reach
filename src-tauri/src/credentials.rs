@@ -66,7 +66,10 @@ fn os_delete_password(id: &str) -> Result<(), String> {
     if !output.status.success() {
         let err = String::from_utf8_lossy(&output.stderr);
         if !err.contains("Element not found") {
-            return Err(format!("Failed to delete credential from OS store: {}", err));
+            return Err(format!(
+                "Failed to delete credential from OS store: {}",
+                err
+            ));
         }
     }
     Ok(())
@@ -116,7 +119,14 @@ if ($result) {{
     );
 
     let output = Command::new("powershell")
-        .args(&["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &ps_script])
+        .args(&[
+            "-NoProfile",
+            "-NonInteractive",
+            "-WindowStyle",
+            "Hidden",
+            "-Command",
+            &ps_script,
+        ])
         .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| format!("Failed to read credential from OS store: {}", e))?;
@@ -153,7 +163,10 @@ pub fn set_termsrv_credential(host: &str, username: &str, password: &str) -> Res
 }
 
 /// Resolves a credential_id to (username, password) for launch flows.
-pub fn resolve_credential(app: &AppHandle, credential_id: &str) -> Result<(String, String), String> {
+pub fn resolve_credential(
+    app: &AppHandle,
+    credential_id: &str,
+) -> Result<(String, String), String> {
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let db_path = app_dir.join("database.sqlite");
     let conn = DbConnection::open(db_path).map_err(|e| e.to_string())?;
@@ -161,7 +174,9 @@ pub fn resolve_credential(app: &AppHandle, credential_id: &str) -> Result<(Strin
     let mut stmt = conn
         .prepare("SELECT username FROM stored_credentials WHERE id = ?1")
         .map_err(|e| e.to_string())?;
-    let mut rows = stmt.query(params![credential_id]).map_err(|e| e.to_string())?;
+    let mut rows = stmt
+        .query(params![credential_id])
+        .map_err(|e| e.to_string())?;
 
     let username = if let Some(row) = rows.next().map_err(|e| e.to_string())? {
         row.get::<_, String>(0).unwrap_or_default()
@@ -184,7 +199,9 @@ pub fn list_stored_credentials(app: AppHandle) -> Result<Vec<StoredCredential>, 
     let conn = DbConnection::open(db_path).map_err(|e| e.to_string())?;
 
     let mut stmt = conn
-        .prepare("SELECT id, label, username, created_at FROM stored_credentials ORDER BY label ASC")
+        .prepare(
+            "SELECT id, label, username, created_at FROM stored_credentials ORDER BY label ASC",
+        )
         .map_err(|e| e.to_string())?;
 
     let mut rows = stmt.query([]).map_err(|e| e.to_string())?;
@@ -203,7 +220,10 @@ pub fn list_stored_credentials(app: AppHandle) -> Result<Vec<StoredCredential>, 
 }
 
 #[tauri::command]
-pub fn create_stored_credential(app: AppHandle, payload: CreateCredentialPayload) -> Result<String, String> {
+pub fn create_stored_credential(
+    app: AppHandle,
+    payload: CreateCredentialPayload,
+) -> Result<String, String> {
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let db_path = app_dir.join("database.sqlite");
     let conn = DbConnection::open(db_path).map_err(|e| e.to_string())?;
@@ -228,7 +248,10 @@ pub fn create_stored_credential(app: AppHandle, payload: CreateCredentialPayload
 }
 
 #[tauri::command]
-pub fn update_stored_credential(app: AppHandle, payload: UpdateCredentialPayload) -> Result<(), String> {
+pub fn update_stored_credential(
+    app: AppHandle,
+    payload: UpdateCredentialPayload,
+) -> Result<(), String> {
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let db_path = app_dir.join("database.sqlite");
     let conn = DbConnection::open(db_path).map_err(|e| e.to_string())?;
@@ -255,9 +278,21 @@ pub fn delete_stored_credential(app: AppHandle, id: String) -> Result<(), String
     let conn = DbConnection::open(db_path).map_err(|e| e.to_string())?;
 
     // Clear credential_id references from all resource tables
-    conn.execute("UPDATE connections SET credential_id = NULL WHERE credential_id = ?1", params![id]).ok();
-    conn.execute("UPDATE ssh_connections SET credential_id = NULL WHERE credential_id = ?1", params![id]).ok();
-    conn.execute("UPDATE apps SET credential_id = NULL WHERE credential_id = ?1", params![id]).ok();
+    conn.execute(
+        "UPDATE connections SET credential_id = NULL WHERE credential_id = ?1",
+        params![id],
+    )
+    .ok();
+    conn.execute(
+        "UPDATE ssh_connections SET credential_id = NULL WHERE credential_id = ?1",
+        params![id],
+    )
+    .ok();
+    conn.execute(
+        "UPDATE apps SET credential_id = NULL WHERE credential_id = ?1",
+        params![id],
+    )
+    .ok();
 
     // Delete from OS store
     os_delete_password(&id)?;

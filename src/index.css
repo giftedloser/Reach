@@ -88,7 +88,6 @@
     --theme-resource-rdp: #d65a4a;
     --theme-resource-ssh: #7f9b86;
     --theme-resource-app: #9b775b;
-    --theme-resource-feed: #bc7a48;
     --surface-panel: 0 0% 100%;
     --sidebar-panel: 40 25% 90%;
 
@@ -131,7 +130,6 @@
     --theme-resource-rdp: #d65a4a;
     --theme-resource-ssh: #7f9b86;
     --theme-resource-app: #9b775b;
-    --theme-resource-feed: #bc7a48;
     --surface-panel: 0 0% 100%;
     --sidebar-panel: 40 25% 90%;
   }
@@ -169,7 +167,6 @@
     --theme-resource-rdp: #f4c76a;
     --theme-resource-ssh: #92aa98;
     --theme-resource-app: #c89a63;
-    --theme-resource-feed: #d4aa73;
     --surface-panel: 0 0% 11%;
     --sidebar-panel: 0 0% 9%;
   }
@@ -207,7 +204,6 @@
     --theme-resource-rdp: #ff6b2c;
     --theme-resource-ssh: #5fd7c8;
     --theme-resource-app: #59a8ff;
-    --theme-resource-feed: #c98fff;
     --surface-panel: 226 24% 11%;
     --sidebar-panel: 228 29% 9%;
   }

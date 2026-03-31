@@ -84,6 +84,11 @@ pub fn delete_ssh_connection(app: AppHandle, id: String) -> Result<(), String> {
     let db_path = app_dir.join("database.sqlite");
     let conn = DbConnection::open(db_path).map_err(|e| e.to_string())?;
 
+    conn.execute(
+        "DELETE FROM tab_assignments WHERE resource_id = ?1 AND resource_type = 'ssh'",
+        params![id],
+    )
+    .map_err(|e| e.to_string())?;
     conn.execute("DELETE FROM ssh_connections WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
     Ok(())
@@ -138,16 +143,17 @@ pub fn launch_ssh(app: AppHandle, id: String) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     let mut rows = stmt.query(params![id]).map_err(|e| e.to_string())?;
 
-    let (host, port, username, credential_id) = if let Some(row) = rows.next().map_err(|e| e.to_string())? {
-        (
-            row.get::<_, String>(0).unwrap_or_default(),
-            row.get::<_, i64>(1).unwrap_or(22),
-            row.get::<_, Option<String>>(2).unwrap_or_default(),
-            row.get::<_, Option<String>>(3).unwrap_or_default(),
-        )
-    } else {
-        return Err("SSH Connection not found".to_string());
-    };
+    let (host, port, username, credential_id) =
+        if let Some(row) = rows.next().map_err(|e| e.to_string())? {
+            (
+                row.get::<_, String>(0).unwrap_or_default(),
+                row.get::<_, i64>(1).unwrap_or(22),
+                row.get::<_, Option<String>>(2).unwrap_or_default(),
+                row.get::<_, Option<String>>(3).unwrap_or_default(),
+            )
+        } else {
+            return Err("SSH Connection not found".to_string());
+        };
 
     // 2. Resolve credential if assigned
     let resolved_cred = if let Some(ref cred_id) = credential_id {

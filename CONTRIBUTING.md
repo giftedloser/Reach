@@ -22,10 +22,9 @@ src/               React frontend (TypeScript + Tailwind CSS)
 src-tauri/src/     Rust backend
   lib.rs           App entrypoint & command registration
   db.rs            SQLite schema & migrations
-  connections.rs   RDP connections
+  connections.rs   RDP connections, gateway resolution & launch
   ssh.rs           SSH connections
-  apps.rs          Local app launcher
-  rd.rs            RD Web feed sync
+  apps.rs          Local app and `.rdp` launcher
   credentials.rs   Credential CRUD + OS secure storage + launch resolution
   settings.rs      Persistent settings
   tabs.rs          Custom tab management
@@ -36,7 +35,7 @@ src-tauri/src/     Rust backend
 
 - Keep PRs focused — one feature or fix per PR.
 - Match the existing code style (Prettier for TS, `cargo fmt` for Rust).
-- Run `npx tsc --noEmit` and `npm run build` before opening a PR to make sure nothing is broken.
+- Run `cargo test`, `cargo check`, and `npm run build` before opening a PR to make sure nothing is broken.
 - Open an issue first for large or breaking changes so we can discuss the approach.
 
 ## Reporting Bugs

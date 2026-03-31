@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Connection, UpdateConnectionPayload, Tab } from "@/types";
+import { Connection, ConnectionGatewayConfig, DesignatedGatewaySetting, UpdateConnectionPayload, Tab } from "@/types";
 import { Trash2 } from "lucide-react";
 import { IconColorPicker } from "./IconColorPicker";
 import { TabIcon } from "./TabIcon";
@@ -29,6 +29,9 @@ export function EditConnectionDialog({ open, onOpenChange, connection, onSuccess
   const [name, setName] = useState("");
   const [host, setHost] = useState("");
   const [username, setUsername] = useState("");
+  const [useDesignatedGateway, setUseDesignatedGateway] = useState(false);
+  const [designatedGatewayHost, setDesignatedGatewayHost] = useState("");
+  const [preservedGatewayJson, setPreservedGatewayJson] = useState<string | null>(null);
 
   const [allTabs, setAllTabs] = useState<Tab[]>([]);
   const [assignedTabIds, setAssignedTabIds] = useState<string[]>([]);
@@ -38,6 +41,23 @@ export function EditConnectionDialog({ open, onOpenChange, connection, onSuccess
   const [color, setColor] = useState<string | null>(null);
   const [credentialId, setCredentialId] = useState<string | null>(null);
 
+  const parseDesignatedGatewayState = (gatewayJson: string | null) => {
+    if (!gatewayJson) {
+      return { useDesignatedGateway: false, preservedGatewayJson: null };
+    }
+
+    try {
+      const parsed = JSON.parse(gatewayJson) as ConnectionGatewayConfig;
+      if (parsed.mode === "designated" || parsed.use_designated_gateway) {
+        return { useDesignatedGateway: true, preservedGatewayJson: null };
+      }
+    } catch {
+      // Preserve unparseable data rather than dropping it during edit.
+    }
+
+    return { useDesignatedGateway: false, preservedGatewayJson: gatewayJson };
+  };
+
   useEffect(() => {
     if (connection && open) {
         setName(connection.name);
@@ -46,13 +66,33 @@ export function EditConnectionDialog({ open, onOpenChange, connection, onSuccess
         setIcon(connection.icon || null);
         setColor(connection.color || null);
         setCredentialId(connection.credential_id || null);
+        const gatewayState = parseDesignatedGatewayState(connection.gateway_json);
+        setUseDesignatedGateway(gatewayState.useDesignatedGateway);
+        setPreservedGatewayJson(gatewayState.preservedGatewayJson);
 
         Promise.all([
             invoke<Tab[]>("get_tabs"),
-            invoke<string[]>("get_resource_tab_assignments", { resourceId: connection.id })
-        ]).then(([tabs, assignments]) => {
+            invoke<string[]>("get_resource_tab_assignments", { resourceId: connection.id }),
+            invoke<string | null>("get_setting", { key: "rd_gateway" })
+        ]).then(([tabs, assignments, gatewaySetting]) => {
             setAllTabs(tabs);
             setAssignedTabIds(assignments);
+
+            if (!gatewaySetting) {
+              setDesignatedGatewayHost("");
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(gatewaySetting) as DesignatedGatewaySetting | string;
+              if (typeof parsed === "string") {
+                setDesignatedGatewayHost(parsed);
+              } else {
+                setDesignatedGatewayHost(parsed.hostname || "");
+              }
+            } catch {
+              setDesignatedGatewayHost(gatewaySetting);
+            }
         }).catch(console.error);
     }
   }, [connection, open]);
@@ -64,7 +104,7 @@ export function EditConnectionDialog({ open, onOpenChange, connection, onSuccess
               await invoke("assign_to_tab", { tabId, resourceId: connection.id, resourceType: "rdp" });
               setAssignedTabIds(prev => [...prev, tabId]);
           } else {
-              await invoke("remove_from_tab", { tabId, resourceId: connection.id });
+              await invoke("remove_from_tab", { tabId, resourceId: connection.id, resourceType: "rdp" });
               setAssignedTabIds(prev => prev.filter(id => id !== tabId));
           }
       } catch (err) {
@@ -100,7 +140,11 @@ export function EditConnectionDialog({ open, onOpenChange, connection, onSuccess
       host,
       username: username || null,
       tags_json: connection.tags_json,
-      gateway_json: connection.gateway_json,
+      gateway_json: useDesignatedGateway
+        ? (designatedGatewayHost.trim()
+            ? JSON.stringify({ mode: "designated" } satisfies ConnectionGatewayConfig)
+            : connection.gateway_json)
+        : preservedGatewayJson,
       rdp_options_json: connection.rdp_options_json,
       icon,
       color,
@@ -142,6 +186,30 @@ export function EditConnectionDialog({ open, onOpenChange, connection, onSuccess
           <div className="space-y-2">
             <Label htmlFor="edit-user">Username</Label>
             <Input id="edit-user" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Optional" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-4 py-3">
+              <div className="pr-4">
+                <Label htmlFor="edit-designated-gateway" className="text-sm cursor-pointer">Use Designated RD Gateway</Label>
+                <p className="text-xs text-muted-foreground">
+                  {designatedGatewayHost.trim()
+                    ? `Gateway: ${designatedGatewayHost.trim()}`
+                    : "Configure a designated gateway in Settings to enable this option."}
+                </p>
+                {!useDesignatedGateway && preservedGatewayJson && (
+                  <p className="text-xs text-muted-foreground">
+                    Existing custom gateway settings will be preserved.
+                  </p>
+                )}
+              </div>
+              <Switch
+                id="edit-designated-gateway"
+                checked={useDesignatedGateway}
+                onCheckedChange={setUseDesignatedGateway}
+                disabled={!designatedGatewayHost.trim() && !useDesignatedGateway}
+              />
+            </div>
           </div>
 
           <CredentialPicker value={credentialId} onChange={setCredentialId} />

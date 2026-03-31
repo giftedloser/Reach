@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Connection } from "@/types";
+import { connectionUsesGateway, Connection } from "@/types";
 import { Monitor } from "lucide-react";
 import { EditConnectionDialog } from "./EditConnectionDialog";
 import { getIconComponent } from "./IconColorPicker";
@@ -59,6 +59,7 @@ export function RDPView({ filter = "" }: RDPViewProps) {
     icon: resolveIcon(conn),
     accentColor: resolveColor(conn),
     typeBadge: "RDP",
+    gatewayBadge: connectionUsesGateway(conn),
     onLaunch: () => handleLaunch(conn.id),
     onEdit: (e: React.MouseEvent) => handleEdit(conn, e),
   }));

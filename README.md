@@ -7,7 +7,7 @@
 
 **One launcher for every connection.**
 
-RDP &nbsp;|&nbsp; SSH &nbsp;|&nbsp; Local Apps &nbsp;|&nbsp; RemoteApps
+RDP &nbsp;|&nbsp; SSH &nbsp;|&nbsp; Local Apps &nbsp;|&nbsp; `.rdp` Launchers
 
 [![Latest Release](https://img.shields.io/github/v/release/giftedloser/Reach?style=for-the-badge&color=E8734A&label=Download)](https://github.com/giftedloser/Reach/releases/latest)
 &nbsp;&nbsp;
@@ -40,7 +40,8 @@ Built with [Tauri 2](https://tauri.app) + React 19 + TypeScript. **Windows only*
 - **RDP** connections with auto-login
 - **SSH** sessions via PuTTY
 - **Local apps** and scripts
-- **RemoteApps** — launch `.rdp` files with auto-login
+- **`.rdp` launchers** with auto-login support
+- **Optional RD Gateway routing** for multi-hop RDP targets
 
 </td>
 <td width="50%">
@@ -69,7 +70,7 @@ Built with [Tauri 2](https://tauri.app) + React 19 + TypeScript. **Windows only*
 - **3 themes** — Editorial Light, Dark Gold, Riddim Synth
 - **Accent color system** — each theme has a distinct accent personality
 - **Keyboard shortcuts** — `Ctrl+0-4` for tabs, `Ctrl+,` for settings
-- **Export / Import** — back up your entire config as JSON
+- **Export / Import** — back up connections, SSH entries, tabs, assignments, and settings as JSON
 
 </td>
 </tr>
@@ -119,11 +120,20 @@ src-tauri/src/         Rust backend
   lib.rs               Tauri command registration
   db.rs                SQLite schema & migrations
   credentials.rs       Credential CRUD + OS secure storage
-  connections.rs       RDP connections & launch
+  connections.rs       RDP connections, RD Gateway resolution & launch
   ssh.rs               SSH connections & launch
-  apps.rs              Local app & RemoteApp launcher
-  backup.rs            Export / import
+  apps.rs              Local app and `.rdp` launcher
+  settings.rs          Persistent app settings
+  tabs.rs              Custom tab management
+  backup.rs            JSON export / import
 ```
+
+## Testing
+
+Backend regression coverage currently focuses on the highest-risk launch and data flows:
+
+- `cargo test` covers backup/import round-trips, restore mode behavior, RD Gateway resolution, and Windows argument parsing
+- `npm run build` verifies the frontend bundle and shared TypeScript types
 
 ## Security
 

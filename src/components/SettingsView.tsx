@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trash, Key, Palette, Terminal, Database, Plus, KeyRound, Pencil } from "lucide-react";
-import { StoredCredential } from "@/types";
+import { Trash, Key, Palette, Terminal, Database, Plus, KeyRound, Pencil, Monitor } from "lucide-react";
+import { DesignatedGatewaySetting, StoredCredential } from "@/types";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ThemeName, THEME_OPTIONS } from "@/lib/theme";
@@ -31,6 +31,40 @@ function SectionCard({ icon: Icon, title, children }: { icon: typeof Key; title:
 }
 
 export function SettingsView({ currentTheme, onThemeChange }: SettingsViewProps) {
+  const [puttyPath, setPuttyPath] = useState("");
+  const [rdGatewayHost, setRdGatewayHost] = useState("");
+
+  useEffect(() => {
+      invoke<string | null>("get_setting", { key: "putty_path" })
+          .then(val => {
+              if (val) {
+                  try {
+                      setPuttyPath(JSON.parse(val));
+                  } catch {
+                      setPuttyPath(val);
+                  }
+              }
+          })
+          .catch(console.error);
+
+      invoke<string | null>("get_setting", { key: "rd_gateway" })
+          .then(val => {
+              if (!val) return;
+
+              try {
+                  const parsed = JSON.parse(val) as DesignatedGatewaySetting | string;
+                  if (typeof parsed === "string") {
+                      setRdGatewayHost(parsed);
+                  } else {
+                      setRdGatewayHost(parsed.hostname || "");
+                  }
+              } catch {
+                  setRdGatewayHost(val);
+              }
+          })
+          .catch(console.error);
+  }, []);
+
   const handleExport = async () => {
     try {
         const path = await save({
@@ -66,26 +100,22 @@ export function SettingsView({ currentTheme, onThemeChange }: SettingsViewProps)
       }
   };
 
-  const [puttyPath, setPuttyPath] = useState("");
-
-  useEffect(() => {
-      invoke<string | null>("get_setting", { key: "putty_path" })
-          .then(val => {
-              if (val) {
-                  try {
-                      setPuttyPath(JSON.parse(val));
-                  } catch {
-                      setPuttyPath(val);
-                  }
-              }
-          })
-          .catch(console.error);
-  }, []);
-
   const savePuttyPath = async () => {
       try {
           await invoke("save_setting", { key: "putty_path", valueJson: JSON.stringify(puttyPath) });
           alert("PuTTY path saved!");
+      } catch (e) {
+          alert("Error: " + e);
+      }
+  };
+
+  const saveRdGateway = async () => {
+      try {
+          await invoke("save_setting", {
+              key: "rd_gateway",
+              valueJson: JSON.stringify({ hostname: rdGatewayHost.trim() }),
+          });
+          alert(rdGatewayHost.trim() ? "RD Gateway saved!" : "RD Gateway cleared.");
       } catch (e) {
           alert("Error: " + e);
       }
@@ -113,6 +143,24 @@ export function SettingsView({ currentTheme, onThemeChange }: SettingsViewProps)
             <Button variant="secondary" onClick={savePuttyPath} className="h-9 px-4 text-sm shrink-0">Save</Button>
           </div>
           <p className="text-xs text-muted-foreground">Required for launching SSH sessions.</p>
+        </div>
+      </SectionCard>
+
+      <SectionCard icon={Monitor} title="RDP">
+        <div className="space-y-2">
+          <Label className="text-sm">Designated RD Gateway</Label>
+          <div className="flex gap-2">
+            <Input
+              value={rdGatewayHost}
+              onChange={e => setRdGatewayHost(e.target.value)}
+              placeholder="gateway.example.com"
+              className="flex-1 h-9 text-sm"
+            />
+            <Button variant="secondary" onClick={saveRdGateway} className="h-9 px-4 text-sm shrink-0">Save</Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Optional. RDP connections can opt into using this gateway for multi-hop access.
+          </p>
         </div>
       </SectionCard>
 

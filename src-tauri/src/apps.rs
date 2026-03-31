@@ -1,8 +1,13 @@
 use chrono::Local;
 use rusqlite::{params, Connection as DbConnection, Result};
 use serde::{Deserialize, Serialize};
+use std::ffi::{OsStr, OsString};
+use std::iter;
+use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use tauri::{AppHandle, Manager};
 use uuid::Uuid;
+use windows_sys::Win32::Foundation::LocalFree;
+use windows_sys::Win32::UI::Shell::CommandLineToArgvW;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct App {
@@ -142,6 +147,11 @@ pub fn delete_app(app: AppHandle, id: String) -> Result<(), String> {
     let db_path = app_dir.join("database.sqlite");
     let conn = DbConnection::open(db_path).map_err(|e| e.to_string())?;
 
+    conn.execute(
+        "DELETE FROM tab_assignments WHERE resource_id = ?1 AND resource_type = 'app'",
+        params![id],
+    )
+    .map_err(|e| e.to_string())?;
     conn.execute("DELETE FROM apps WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
 
@@ -163,6 +173,46 @@ fn parse_rdp_host(rdp_path: &str) -> Option<String> {
         }
     }
     None
+}
+
+fn parse_windows_args(args: &str) -> Result<Vec<String>, String> {
+    if args.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let wide: Vec<u16> = OsStr::new(args)
+        .encode_wide()
+        .chain(iter::once(0))
+        .collect();
+    let mut argc = 0;
+    let argv = unsafe { CommandLineToArgvW(wide.as_ptr(), &mut argc) };
+
+    if argv.is_null() {
+        return Err("Failed to parse arguments".to_string());
+    }
+
+    let parsed = (0..argc as usize)
+        .map(|index| {
+            let ptr = unsafe { *argv.add(index) };
+            let mut len = 0;
+            while unsafe { *ptr.add(len) } != 0 {
+                len += 1;
+            }
+            OsString::from_wide(unsafe { std::slice::from_raw_parts(ptr, len) })
+                .to_string_lossy()
+                .into_owned()
+        })
+        .collect();
+
+    unsafe {
+        LocalFree(argv as _);
+    }
+
+    Ok(parsed)
+}
+
+fn powershell_single_quote(value: &str) -> String {
+    value.replace('\'', "''")
 }
 
 #[tauri::command]
@@ -223,17 +273,26 @@ pub fn launch_app(app: AppHandle, id: String) -> Result<(), String> {
         }
     }
 
-    if run_as_admin {
-        let mut ps_cmd = format!("Start-Process -FilePath \"{}\"", exe_path);
+    let parsed_args = parse_windows_args(args.as_deref().unwrap_or(""))?;
 
-        if let Some(arg_str) = args {
-            let escaped_args = arg_str.replace("\"", "`\"");
-            ps_cmd.push_str(&format!(" -ArgumentList \"{}\"", escaped_args));
+    if run_as_admin {
+        let escaped_path = powershell_single_quote(&exe_path);
+        let mut ps_cmd = format!("Start-Process -FilePath '{}'", escaped_path);
+
+        if !parsed_args.is_empty() {
+            let escaped_args = parsed_args
+                .iter()
+                .map(|arg| format!("'{}'", powershell_single_quote(arg)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            ps_cmd.push_str(&format!(" -ArgumentList @({})", escaped_args));
         }
 
         if let Some(wd) = working_dir {
-            let escaped_wd = wd.replace("\"", "`\"");
-            ps_cmd.push_str(&format!(" -WorkingDirectory \"{}\"", escaped_wd));
+            ps_cmd.push_str(&format!(
+                " -WorkingDirectory '{}'",
+                powershell_single_quote(&wd)
+            ));
         }
 
         ps_cmd.push_str(" -Verb RunAs");
@@ -274,10 +333,8 @@ pub fn launch_app(app: AppHandle, id: String) -> Result<(), String> {
         cmd.arg("-File");
         cmd.arg(&exe_path);
 
-        if let Some(arg_str) = args {
-            for part in arg_str.split_whitespace() {
-                cmd.arg(part);
-            }
+        for arg in &parsed_args {
+            cmd.arg(arg);
         }
 
         if let Some(wd) = working_dir {
@@ -291,10 +348,8 @@ pub fn launch_app(app: AppHandle, id: String) -> Result<(), String> {
         cmd.arg("/c");
         cmd.arg(&exe_path);
 
-        if let Some(arg_str) = args {
-            for part in arg_str.split_whitespace() {
-                cmd.arg(part);
-            }
+        for arg in &parsed_args {
+            cmd.arg(arg);
         }
 
         if let Some(wd) = working_dir {
@@ -306,10 +361,8 @@ pub fn launch_app(app: AppHandle, id: String) -> Result<(), String> {
     } else {
         let mut cmd = std::process::Command::new(&exe_path);
 
-        if let Some(arg_str) = args {
-            for part in arg_str.split_whitespace() {
-                cmd.arg(part);
-            }
+        for arg in &parsed_args {
+            cmd.arg(arg);
         }
 
         if let Some(wd) = working_dir {
@@ -321,4 +374,39 @@ pub fn launch_app(app: AppHandle, id: String) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_windows_args;
+
+    #[test]
+    fn parse_windows_args_handles_empty_input() {
+        let args = parse_windows_args("").unwrap();
+        assert!(args.is_empty());
+    }
+
+    #[test]
+    fn parse_windows_args_preserves_quoted_segments() {
+        let args = parse_windows_args(r#"--host server01 --label "My Server""#).unwrap();
+
+        assert_eq!(args, vec!["--host", "server01", "--label", "My Server"]);
+    }
+
+    #[test]
+    fn parse_windows_args_preserves_windows_paths() {
+        let args =
+            parse_windows_args(r#"--path "C:\Program Files\Admin Tool\tool.exe" --mode silent"#)
+                .unwrap();
+
+        assert_eq!(
+            args,
+            vec![
+                "--path",
+                r"C:\Program Files\Admin Tool\tool.exe",
+                "--mode",
+                "silent"
+            ]
+        );
+    }
 }

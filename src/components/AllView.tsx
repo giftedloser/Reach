@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { App, Connection, SshConnection } from "@/types";
+import { App, connectionUsesGateway, Connection, SshConnection } from "@/types";
 import { Command, Monitor, Terminal } from "lucide-react";
 import { EditAppDialog } from "./EditAppDialog";
 import { EditConnectionDialog } from "./EditConnectionDialog";
@@ -104,7 +104,15 @@ export function AllView({ filter = "" }: AllViewProps) {
   const resolveIcon = (res: UnifiedResource) => getIconComponent(getCustomIconName(res)) || getDefaultIcon(res);
   const resolveColor = (res: UnifiedResource) => getCustomColor(res) || TYPE_COLORS[res.type] || "#64748b";
 
-  const filtered = resources.filter(r => r.name.toLowerCase().includes(filter.toLowerCase()));
+  const normalizedFilter = filter.trim().toLowerCase();
+  const filtered = resources.filter((res) => {
+    if (!normalizedFilter) {
+      return true;
+    }
+
+    const haystack = `${res.name} ${getSubtitle(res)}`.toLowerCase();
+    return haystack.includes(normalizedFilter);
+  });
 
   const items: ResourceItem[] = filtered.map((res) => ({
     id: `${res.type}-${res.original.id}`,
@@ -113,6 +121,7 @@ export function AllView({ filter = "" }: AllViewProps) {
     icon: resolveIcon(res),
     accentColor: resolveColor(res),
     typeBadge: res.type.toUpperCase(),
+    gatewayBadge: res.type === "rdp" && connectionUsesGateway(res.original as Connection),
     onLaunch: () => handleLaunch(res),
     onEdit: (e: React.MouseEvent) => handleEdit(res, e),
   }));

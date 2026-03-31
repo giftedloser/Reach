@@ -93,7 +93,7 @@ export function EditAppDialog({ open, onOpenChange, app, onSuccess }: EditAppDia
               await invoke("assign_to_tab", { tabId, resourceId: app.id, resourceType: "app" });
               setAssignedTabIds(prev => [...prev, tabId]);
           } else {
-              await invoke("remove_from_tab", { tabId, resourceId: app.id });
+              await invoke("remove_from_tab", { tabId, resourceId: app.id, resourceType: "app" });
               setAssignedTabIds(prev => prev.filter(id => id !== tabId));
           }
       } catch (err) {
