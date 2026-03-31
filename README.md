@@ -1,5 +1,5 @@
 <div align="center">
-<img width="100" height="100" alt="image" src="https://github.com/user-attachments/assets/b1a7ac98-f791-4066-9b0d-7003b5fc5772" />
+<img width="4096" height="4096" alt="newicon" src="https://github.com/user-attachments/assets/e2c2f916-5315-4b99-b944-3c5cb59c2816" />
   
 # Reach
 
